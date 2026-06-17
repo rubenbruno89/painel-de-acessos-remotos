@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Acessos Remotos</title>
+    
+    <!-- Tailwind CSS para design responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS para ler e escrever arquivos Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <!-- FontAwesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        .toast { transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out; }
+        .toast.hidden-toast { opacity: 0; transform: translateY(-20px); pointer-events: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+
+    <!-- Aviso de Erro de Armazenamento (Oculto por padrão) -->
+    <div id="storageWarning" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 mx-4 mt-4 rounded" role="alert">
+        <p class="font-bold">⚠️ Aviso de Salvamento</p>
+        <p>Seu navegador está bloqueando o salvamento local. Isso acontece no <strong>Modo Anônimo</strong> ou se os cookies estiverem desativados.</p>
+    </div>
+
+    <!-- Notificação Toast -->
+    <div id="toast" class="fixed top-4 right-4 z-50 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg toast hidden-toast flex items-center gap-2">
+        <i class="fas fa-check-circle"></i>
+        <span id="toast-message">Operação realizada com sucesso!</span>
+    </div>
+
+    <!-- Cabeçalho -->
+    <header class="bg-blue-700 text-white shadow-md">
+        <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-shield-alt text-2xl"></i>
+                <h1 class="text-xl md:text-2xl font-bold">Painel de Acessos Remotos</h1>
+            </div>
+            <div class="flex flex-wrap gap-2 justify-center">
+                <button onclick="downloadExample()" class="bg-blue-800 hover:bg-blue-900 text-white px-4 py-2 rounded-lg text-sm transition flex items-center gap-2">
+                    <i class="fas fa-file-excel"></i> <span class="hidden sm:inline">Baixar Exemplo</span>
+                </button>
+                <label class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 cursor-pointer">
+                    <i class="fas fa-file-import"></i> <span class="hidden sm:inline">Importar Excel</span>
+                    <input type="file" id="importFile" accept=".xlsx, .xls" class="hidden" onchange="importExcel(this)">
+                </label>
+                <button onclick="exportExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm transition flex items-center gap-2">
+                    <i class="fas fa-file-export"></i> <span class="hidden sm:inline">Exportar Excel</span>                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 max-w-6xl">
+        
+        <!-- Formulário de Adição -->
+        <section class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
+            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-700">
+                <i class="fas fa-plus-circle text-blue-600"></i> Adicionar Novo Acesso
+            </h2>
+            <form id="addForm" onsubmit="addAccess(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Nome do Dispositivo/Cliente *</label>
+                    <input type="text" id="nome" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" placeholder="Ex: PC Financeiro">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Software *</label>
+                    <input type="text" id="software" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Ex: AnyDesk, HostDesk">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-1">ID de Acesso *</label>
+                    <input type="text" id="id_acesso" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Ex: 123 456 789">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Senha</label>
+                    <input type="text" id="senha" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Deixe em branco se não houver">
+                </div>
+                <div class="md:col-span-2 lg:col-span-2">
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Observação</label>
+                    <input type="text" id="observacao" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Ex: Acessar apenas em horário comercial">
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition shadow-sm flex justify-center items-center gap-2">
+                        <i class="fas fa-save"></i> Salvar Acesso
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Lista de Acessos -->
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50 flex-wrap gap-2">
+                <h2 class="text-lg font-semibold text-slate-700 flex items-center gap-2">
+                    <i class="fas fa-list text-blue-600"></i> Acessos Cadastrados (<span id="count">0</span>)
+                </h2>
+                <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
+                    <input type="checkbox" id="hidePasswords" checked onchange="renderAccesses()" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                    Ocultar Senhas                </label>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-100 text-slate-600 text-sm uppercase tracking-wider">
+                        <tr>
+                            <th class="px-4 py-3 font-semibold">Nome</th>
+                            <th class="px-4 py-3 font-semibold">Software</th>
+                            <th class="px-4 py-3 font-semibold">ID de Acesso</th>
+                            <th class="px-4 py-3 font-semibold">Senha</th>
+                            <th class="px-4 py-3 font-semibold hidden md:table-cell">Observação</th>
+                            <th class="px-4 py-3 font-semibold text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accessTableBody" class="divide-y divide-slate-200 text-sm">
+                        <!-- Linhas serão inseridas aqui via JavaScript -->
+                    </tbody>
+                </table>
+                
+                <div id="emptyState" class="hidden p-8 text-center text-slate-500">
+                    <i class="fas fa-inbox text-4xl mb-3 text-slate-300"></i>
+                    <p>Nenhum acesso cadastrado.</p>
+                    <p class="text-xs mt-1">Adicione manualmente ou importe uma planilha Excel.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="text-center py-6 text-slate-500 text-sm">
+        <p>Os dados são salvos localmente no seu navegador. Use "Exportar Excel" para fazer backup seguro.</p>
+    </footer>
+
+    <!-- Lógica JavaScript -->
+    <script>
+        const STORAGE_KEY = 'remote_access_db';
+        let accesses = [];
+        let storageAvailable = false;
+
+        // 1. Verificar se o navegador permite salvar dados
+        function checkStorageAvailability() {
+            try {
+                const testKey = '__test__';
+                localStorage.setItem(testKey, testKey);
+                localStorage.removeItem(testKey);
+                storageAvailable = true;
+            } catch (e) {
+                storageAvailable = false;
+                document.getElementById('storageWarning').classList.remove('hidden');
+            }        }
+
+        // 2. Carregar dados
+        function loadData() {
+            if (!storageAvailable) return;
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) accesses = JSON.parse(stored);
+            } catch (e) {
+                showToast("Erro ao carregar dados salvos.", "error");
+            }
+        }
+
+        // 3. Salvar dados
+        function saveData() {
+            if (!storageAvailable) {
+                showToast("Atenção: Dados não serão salvos ao fechar a página.", "error");
+                renderAccesses();
+                return;
+            }
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(accesses));
+                renderAccesses();
+            } catch (e) {
+                showToast("Erro ao salvar! Armazenamento pode estar cheio.", "error");
+            }
+        }
+
+        // 4. Adicionar novo acesso
+        function addAccess(event) {
+            event.preventDefault();
+            try {
+                const novoAcesso = {
+                    id: Date.now(),
+                    nome: document.getElementById('nome').value.trim(),
+                    software: document.getElementById('software').value.trim(),
+                    id_acesso: document.getElementById('id_acesso').value.trim(),
+                    senha: document.getElementById('senha').value.trim(),
+                    observacao: document.getElementById('observacao').value.trim(),
+                    data_atualizacao: new Date().toLocaleString('pt-BR')
+                };
+
+                if (!novoAcesso.nome || !novoAcesso.id_acesso) {
+                    showToast("Preencha pelo menos Nome e ID de Acesso.", "error");
+                    return;
+                }
+
+                accesses.push(novoAcesso);
+                saveData();
+                document.getElementById('addForm').reset();                showToast('Acesso adicionado com sucesso!', 'success');
+            } catch (e) {
+                showToast("Ocorreu um erro inesperado ao salvar.", "error");
+            }
+        }
+
+        // 5. Remover acesso
+        function deleteAccess(id) {
+            if (confirm('Tem certeza que deseja excluir este acesso?')) {
+                accesses = accesses.filter(a => a.id !== id);
+                saveData();
+                showToast('Acesso removido.', 'success');
+            }
+        }
+
+        // 6. FUNÇÃO DE CÓPIA CORRIGIDA E ROBUSTA
+        function copyToClipboard(text, fieldName) {
+            if (!text) {
+                showToast(`${fieldName} está vazio.`, 'error');
+                return;
+            }
+            
+            // Tenta usar a API moderna primeiro
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast(`${fieldName} copiado com sucesso!`, 'success');
+                }).catch(() => {
+                    fallbackCopy(text, fieldName);
+                });
+            } else {
+                // Fallback para navegadores mais antigos ou HTTP
+                fallbackCopy(text, fieldName);
+            }
+        }
+
+        function fallbackCopy(text, fieldName) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast(`${fieldName} copiado com sucesso!`, 'success');
+                } else {
+                    showToast('Erro ao copiar. Selecione o texto manualmente.', 'error');                }
+            } catch (err) {
+                showToast('Erro ao copiar. Selecione o texto manualmente.', 'error');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // 7. Renderizar a tabela
+        function renderAccesses() {
+            const tbody = document.getElementById('accessTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const countSpan = document.getElementById('count');
+            const hidePasswords = document.getElementById('hidePasswords').checked;
+
+            tbody.innerHTML = '';
+            countSpan.textContent = accesses.length;
+
+            if (accesses.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            accesses.forEach(access => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition';
+                
+                const senhaDisplay = hidePasswords ? '••••••••' : (access.senha || '---');
+                const senhaClass = hidePasswords ? 'text-slate-400 tracking-widest' : 'font-mono text-slate-700';
+
+                // Nota: Usamos data-text em vez de onclick inline para evitar bugs com aspas no texto
+                tr.innerHTML = `
+                    <td class="px-4 py-3 font-medium text-slate-800 max-w-[150px] truncate" title="${escapeHtml(access.nome)}">${escapeHtml(access.nome)}</td>
+                    <td class="px-4 py-3">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                            ${escapeHtml(access.software)}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono text-slate-700 truncate flex-1" title="${escapeHtml(access.id_acesso)}">${escapeHtml(access.id_acesso)}</span>
+                            <button class="copy-btn text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-1.5 rounded transition flex-shrink-0" data-text="${access.id_acesso}" data-field="ID de Acesso" title="Copiar ID">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2">
+                            <span class="${senhaClass} truncate flex-1" title="${escapeHtml(access.senha)}">${escapeHtml(senhaDisplay)}</span>                            <button class="copy-btn text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-1.5 rounded transition flex-shrink-0" data-text="${access.senha}" data-field="Senha" title="Copiar Senha">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-slate-600 hidden md:table-cell max-w-xs truncate" title="${escapeHtml(access.observacao)}">${escapeHtml(access.observacao) || '-'}</td>
+                    <td class="px-4 py-3 text-center">
+                        <button onclick="deleteAccess(${access.id})" class="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition" title="Excluir">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Adiciona os eventos de clique aos botões de cópia recém-criados
+            document.querySelectorAll('.copy-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const text = this.getAttribute('data-text');
+                    const fieldName = this.getAttribute('data-field');
+                    copyToClipboard(text, fieldName);
+                });
+            });
+        }
+
+        // 8. Exportar para Excel
+        function exportExcel() {
+            if (accesses.length === 0) {
+                showToast('Nenhum dado para exportar.', 'error');
+                return;
+            }
+            const dadosParaExportar = accesses.map(a => ({
+                "Nome": a.nome,
+                "Software": a.software,
+                "ID_Acesso": a.id_acesso,
+                "Senha": a.senha,
+                "Observacao": a.observacao
+            }));
+            const ws = XLSX.utils.json_to_sheet(dadosParaExportar);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Acessos");
+            const colWidths = [{wch: 25}, {wch: 15}, {wch: 20}, {wch: 20}, {wch: 40}];
+            ws['!cols'] = colWidths;
+            const dataStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            XLSX.writeFile(wb, `acessos_remotos_${dataStr}.xlsx`);
+            showToast('Planilha exportada com sucesso!', 'success');
+        }
+
+        // 9. Importar do Excel
+        function importExcel(input) {            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+                    if (jsonData.length === 0) {
+                        showToast('A planilha está vazia.', 'error');
+                        return;
+                    }
+                    const firstRow = jsonData[0];
+                    if (!firstRow['Nome'] || !firstRow['ID_Acesso']) {
+                        showToast('Erro: A planilha deve conter as colunas "Nome" e "ID_Acesso".', 'error');
+                        return;
+                    }
+                    if (confirm(`Encontrados ${jsonData.length} registros. Deseja SUBSTITUIR todos os dados atuais por estes?`)) {
+                        accesses = jsonData.map((row, index) => ({
+                            id: Date.now() + index,
+                            nome: String(row['Nome'] || ''),
+                            software: String(row['Software'] || 'Não especificado'),
+                            id_acesso: String(row['ID_Acesso'] || ''),
+                            senha: String(row['Senha'] || ''),
+                            observacao: String(row['Observacao'] || ''),
+                            data_atualizacao: new Date().toLocaleString('pt-BR')
+                        }));
+                        saveData();
+                        showToast('Dados importados com sucesso!', 'success');
+                    }
+                } catch (error) {
+                    showToast('Erro ao ler o arquivo. Verifique se é um Excel válido (.xlsx).', 'error');
+                }
+                input.value = '';
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 10. Gerar e baixar planilha de exemplo
+        function downloadExample() {
+            const exemplo = [
+                { "Nome": "Servidor Financeiro", "Software": "AnyDesk", "ID_Acesso": "123 456 789", "Senha": "SenhaForte123!", "Observacao": "Acessar apenas com autorização prévia" },
+                { "Nome": "Notebook Diretor", "Software": "TeamViewer", "ID_Acesso": "987 654 321", "Senha": "Diretor@2024", "Observacao": "Disponível 24h" },
+                { "Nome": "PC Recepção", "Software": "HostDesk", "ID_Acesso": "555 444 333", "Senha": "recepcao123", "Observacao": "Sistema de agendamento sempre aberto" }
+            ];
+            const ws = XLSX.utils.json_to_sheet(exemplo);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Exemplo");            const colWidths = [{wch: 25}, {wch: 15}, {wch: 20}, {wch: 20}, {wch: 40}];
+            ws['!cols'] = colWidths;
+            XLSX.writeFile(wb, "modelo_exemplo_acessos.xlsx");
+            showToast('Planilha de exemplo baixada!', 'success');
+        }
+
+        // Utilitário: Mostrar notificação
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-message');
+            msgEl.textContent = message;
+            toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg toast flex items-center gap-2 text-white ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+            toast.classList.remove('hidden-toast');
+            setTimeout(() => {
+                toast.classList.add('hidden-toast');
+            }, 2500);
+        }
+
+        // Utilitário: Prevenir XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = { '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            checkStorageAvailability();
+            loadData();
+            renderAccesses();
+        });
+    </script>
+</body>
+</html>
