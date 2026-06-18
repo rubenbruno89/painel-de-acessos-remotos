@@ -3,139 +3,264 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciador de Acessos Remotos</title>
+    <title>Gerenciador de Acessos Remotos - Protegido</title>
     
-    <!-- Tailwind CSS para design responsivo -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SheetJS para ler e escrever arquivos Excel -->
+    <!-- SheetJS -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
-    <!-- FontAwesome para ícones -->
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         .toast { transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out; }
         .toast.hidden-toast { opacity: 0; transform: translateY(-20px); pointer-events: none; }
+        /* Animação de fade-in para o painel principal */
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
 
-    <!-- Aviso de Erro de Armazenamento (Oculto por padrão) -->
-    <div id="storageWarning" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 mx-4 mt-4 rounded" role="alert">
-        <p class="font-bold">⚠️ Aviso de Salvamento</p>
-        <p>Seu navegador está bloqueando o salvamento local. Isso acontece no <strong>Modo Anônimo</strong> ou se os cookies estiverem desativados.</p>
-    </div>
-
-    <!-- Notificação Toast -->
-    <div id="toast" class="fixed top-4 right-4 z-50 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg toast hidden-toast flex items-center gap-2">
-        <i class="fas fa-check-circle"></i>
-        <span id="toast-message">Operação realizada com sucesso!</span>
-    </div>
-
-    <!-- Cabeçalho -->
-    <header class="bg-blue-700 text-white shadow-md">
-        <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <i class="fas fa-shield-alt text-2xl"></i>
-                <h1 class="text-xl md:text-2xl font-bold">Painel de Acessos Remotos</h1>
-            </div>
-            <div class="flex flex-wrap gap-2 justify-center">
-                <button onclick="downloadExample()" class="bg-blue-800 hover:bg-blue-900 text-white px-4 py-2 rounded-lg text-sm transition flex items-center gap-2">
-                    <i class="fas fa-file-excel"></i> <span class="hidden sm:inline">Baixar Exemplo</span>
-                </button>
-                <label class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 cursor-pointer">
-                    <i class="fas fa-file-import"></i> <span class="hidden sm:inline">Importar Excel</span>
-                    <input type="file" id="importFile" accept=".xlsx, .xls" class="hidden" onchange="importExcel(this)">
-                </label>
-                <button onclick="exportExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm transition flex items-center gap-2">
-                    <i class="fas fa-file-export"></i> <span class="hidden sm:inline">Exportar Excel</span>                </button>
-            </div>
-        </div>
-    </header>
-
-    <main class="container mx-auto px-4 py-6 max-w-6xl">
-        
-        <!-- Formulário de Adição -->
-        <section class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
-            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-700">
-                <i class="fas fa-plus-circle text-blue-600"></i> Adicionar Novo Acesso
-            </h2>
-            <form id="addForm" onsubmit="addAccess(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-slate-600 mb-1">Nome do Dispositivo/Cliente *</label>
-                    <input type="text" id="nome" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" placeholder="Ex: PC Financeiro">
+    <!-- ==================== TELA DE LOGIN ==================== -->
+    <div id="loginScreen" class="fixed inset-0 bg-gradient-to-br from-blue-900 to-slate-900 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4">
+            <div class="text-center mb-6">
+                <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-shield-alt text-3xl text-blue-600"></i>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-600 mb-1">Software *</label>
-                    <input type="text" id="software" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Ex: AnyDesk, HostDesk">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-600 mb-1">ID de Acesso *</label>
-                    <input type="text" id="id_acesso" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Ex: 123 456 789">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-600 mb-1">Senha</label>
-                    <input type="text" id="senha" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Deixe em branco se não houver">
-                </div>
-                <div class="md:col-span-2 lg:col-span-2">
-                    <label class="block text-sm font-medium text-slate-600 mb-1">Observação</label>
-                    <input type="text" id="observacao" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Ex: Acessar apenas em horário comercial">
-                </div>
-                <div class="flex items-end">
-                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition shadow-sm flex justify-center items-center gap-2">
-                        <i class="fas fa-save"></i> Salvar Acesso
-                    </button>
-                </div>
-            </form>
-        </section>
-
-        <!-- Lista de Acessos -->
-        <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50 flex-wrap gap-2">
-                <h2 class="text-lg font-semibold text-slate-700 flex items-center gap-2">
-                    <i class="fas fa-list text-blue-600"></i> Acessos Cadastrados (<span id="count">0</span>)
-                </h2>
-                <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
-                    <input type="checkbox" id="hidePasswords" checked onchange="renderAccesses()" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
-                    Ocultar Senhas                </label>
+                <h1 class="text-2xl font-bold text-slate-800">Acesso Restrito</h1>
+                <p class="text-slate-500 mt-2">Digite a senha mestra para acessar o painel</p>
             </div>
             
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead class="bg-slate-100 text-slate-600 text-sm uppercase tracking-wider">
-                        <tr>
-                            <th class="px-4 py-3 font-semibold">Nome</th>
-                            <th class="px-4 py-3 font-semibold">Software</th>
-                            <th class="px-4 py-3 font-semibold">ID de Acesso</th>
-                            <th class="px-4 py-3 font-semibold">Senha</th>
-                            <th class="px-4 py-3 font-semibold hidden md:table-cell">Observação</th>
-                            <th class="px-4 py-3 font-semibold text-center">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="accessTableBody" class="divide-y divide-slate-200 text-sm">
-                        <!-- Linhas serão inseridas aqui via JavaScript -->
-                    </tbody>
-                </table>
+            <form onsubmit="checkPassword(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Senha Mestra</label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="masterPassword" 
+                            class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition pr-10"
+                            placeholder="Digite a senha..."
+                            autofocus
+                        >
+                        <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                            <i class="fas fa-eye" id="eyeIcon"></i>
+                        </button>
+                    </div>
+                </div>
                 
-                <div id="emptyState" class="hidden p-8 text-center text-slate-500">
-                    <i class="fas fa-inbox text-4xl mb-3 text-slate-300"></i>
-                    <p>Nenhum acesso cadastrado.</p>
-                    <p class="text-xs mt-1">Adicione manualmente ou importe uma planilha Excel.</p>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition shadow-lg flex items-center justify-center gap-2">
+                    <i class="fas fa-unlock"></i> Entrar
+                </button>
+                
+                <p id="loginError" class="text-red-500 text-sm text-center hidden">
+                    <i class="fas fa-exclamation-circle"></i> Senha incorreta!
+                </p>
+            </form>
+            
+            <div class="mt-6 pt-6 border-t border-slate-200 text-center text-xs text-slate-400">
+                <p>💡 Dica: A senha padrão é <strong>admin123</strong></p>
+                <p class="mt-1">Você pode alterá-la no código fonte</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== PAINEL PRINCIPAL (Oculto inicialmente) ==================== -->
+    <div id="mainPanel" class="hidden">
+        
+        <!-- Aviso de Erro de Armazenamento -->
+        <div id="storageWarning" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 mx-4 mt-4 rounded" role="alert">
+            <p class="font-bold">⚠️ Aviso de Salvamento</p>
+            <p>Seu navegador está bloqueando o salvamento local. Isso acontece no <strong>Modo Anônimo</strong>.</p>
+        </div>
+
+        <!-- Notificação Toast -->
+        <div id="toast" class="fixed top-4 right-4 z-50 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg toast hidden-toast flex items-center gap-2">
+            <i class="fas fa-check-circle"></i>
+            <span id="toast-message">Operação realizada com sucesso!</span>
+        </div>
+
+        <!-- Cabeçalho -->
+        <header class="bg-blue-700 text-white shadow-md">
+            <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-shield-alt text-2xl"></i>
+                    <h1 class="text-xl md:text-2xl font-bold">Painel de Acessos Remotos</h1>
+                </div>
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <button onclick="downloadExample()" class="bg-blue-800 hover:bg-blue-900 text-white px-4 py-2 rounded-lg text-sm transition flex items-center gap-2">
+                        <i class="fas fa-file-excel"></i> <span class="hidden sm:inline">Baixar Exemplo</span>
+                    </button>
+                    <label class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 cursor-pointer">
+                        <i class="fas fa-file-import"></i> <span class="hidden sm:inline">Importar Excel</span>
+                        <input type="file" id="importFile" accept=".xlsx, .xls" class="hidden" onchange="importExcel(this)">
+                    </label>
+                    <button onclick="exportExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm transition flex items-center gap-2">
+                        <i class="fas fa-file-export"></i> <span class="hidden sm:inline">Exportar Excel</span>
+                    </button>
+                    <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition flex items-center gap-2">
+                        <i class="fas fa-sign-out-alt"></i> <span class="hidden sm:inline">Sair</span>
+                    </button>
                 </div>
             </div>
-        </section>
-    </main>
+        </header>
 
-    <footer class="text-center py-6 text-slate-500 text-sm">
-        <p>Os dados são salvos localmente no seu navegador. Use "Exportar Excel" para fazer backup seguro.</p>
-    </footer>
+        <main class="container mx-auto px-4 py-6 max-w-6xl">
+            
+            <!-- Formulário de Adição -->
+            <section class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
+                <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-700">
+                    <i class="fas fa-plus-circle text-blue-600"></i> Adicionar Novo Acesso
+                </h2>
+                <form id="addForm" onsubmit="addAccess(event)" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Nome do Dispositivo/Cliente *</label>
+                        <input type="text" id="nome" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" placeholder="Ex: PC Financeiro">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Software *</label>
+                        <input type="text" id="software" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Ex: AnyDesk, HostDesk">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">ID de Acesso *</label>
+                        <input type="text" id="id_acesso" required class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Ex: 123 456 789">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Senha</label>
+                        <input type="text" id="senha" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Deixe em branco se não houver">
+                    </div>
+                    <div class="md:col-span-2 lg:col-span-2">
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Observação</label>
+                        <input type="text" id="observacao" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Ex: Acessar apenas em horário comercial">
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition shadow-sm flex justify-center items-center gap-2">
+                            <i class="fas fa-save"></i> Salvar Acesso
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Lista de Acessos -->
+            <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50 flex-wrap gap-2">
+                    <h2 class="text-lg font-semibold text-slate-700 flex items-center gap-2">
+                        <i class="fas fa-list text-blue-600"></i> Acessos Cadastrados (<span id="count">0</span>)
+                    </h2>
+                    <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
+                        <input type="checkbox" id="hidePasswords" checked onchange="renderAccesses()" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                        Ocultar Senhas na Tela
+                    </label>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-100 text-slate-600 text-sm uppercase tracking-wider">
+                            <tr>
+                                <th class="px-4 py-3 font-semibold">Nome</th>
+                                <th class="px-4 py-3 font-semibold">Software</th>
+                                <th class="px-4 py-3 font-semibold">ID de Acesso</th>
+                                <th class="px-4 py-3 font-semibold">Senha</th>
+                                <th class="px-4 py-3 font-semibold hidden md:table-cell">Observação</th>
+                                <th class="px-4 py-3 font-semibold text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="accessTableBody" class="divide-y divide-slate-200 text-sm">
+                            <!-- Linhas serão inseridas aqui via JavaScript -->
+                        </tbody>
+                    </table>
+                    
+                    <div id="emptyState" class="hidden p-8 text-center text-slate-500">
+                        <i class="fas fa-inbox text-4xl mb-3 text-slate-300"></i>
+                        <p>Nenhum acesso cadastrado.</p>
+                        <p class="text-xs mt-1">Adicione manualmente ou importe uma planilha Excel.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="text-center py-6 text-slate-500 text-sm">
+            <p>Os dados são salvos localmente no seu navegador. Use "Exportar Excel" para fazer backup seguro.</p>
+        </footer>
+    </div>
 
     <!-- Lógica JavaScript -->
     <script>
+        // ==================== CONFIGURAÇÃO DA SENHA ====================
+        // ALTERE AQUI A SENHA MESTRA DO SEU PAINEL
+        const MASTER_PASSWORD = "admin123"; 
+        // ===============================================================
+
         const STORAGE_KEY = 'remote_access_db';
         let accesses = [];
         let storageAvailable = false;
 
-        // 1. Verificar se o navegador permite salvar dados
+        // Verificar se já está logado nesta sessão
+        document.addEventListener('DOMContentLoaded', () => {
+            if (sessionStorage.getItem('isLoggedIn') === 'true') {
+                showMainPanel();
+            }
+        });
+
+        // Função de Login
+        function checkPassword(event) {
+            event.preventDefault();
+            const input = document.getElementById('masterPassword');
+            const errorMsg = document.getElementById('loginError');
+            
+            if (input.value === MASTER_PASSWORD) {
+                sessionStorage.setItem('isLoggedIn', 'true');
+                showMainPanel();
+                input.value = '';
+                errorMsg.classList.add('hidden');
+            } else {
+                errorMsg.classList.remove('hidden');
+                input.value = '';
+                input.focus();
+                // Shake animation
+                input.parentElement.classList.add('animate-pulse');
+                setTimeout(() => input.parentElement.classList.remove('animate-pulse'), 500);
+            }
+        }
+
+        // Mostrar Painel Principal
+        function showMainPanel() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            const mainPanel = document.getElementById('mainPanel');
+            mainPanel.classList.remove('hidden');
+            mainPanel.classList.add('fade-in');
+            
+            checkStorageAvailability();
+            loadData();
+            renderAccesses();
+        }
+
+        // Logout
+        function logout() {
+            if (confirm('Deseja realmente sair?')) {
+                sessionStorage.removeItem('isLoggedIn');
+                location.reload();
+            }
+        }
+
+        // Alternar visibilidade da senha no login
+        function togglePasswordVisibility() {
+            const input = document.getElementById('masterPassword');
+            const icon = document.getElementById('eyeIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        // ==================== FUNÇÕES DO PAINEL (Igual ao anterior) ====================
+
         function checkStorageAvailability() {
             try {
                 const testKey = '__test__';
@@ -145,9 +270,9 @@
             } catch (e) {
                 storageAvailable = false;
                 document.getElementById('storageWarning').classList.remove('hidden');
-            }        }
+            }
+        }
 
-        // 2. Carregar dados
         function loadData() {
             if (!storageAvailable) return;
             try {
@@ -158,7 +283,6 @@
             }
         }
 
-        // 3. Salvar dados
         function saveData() {
             if (!storageAvailable) {
                 showToast("Atenção: Dados não serão salvos ao fechar a página.", "error");
@@ -173,7 +297,6 @@
             }
         }
 
-        // 4. Adicionar novo acesso
         function addAccess(event) {
             event.preventDefault();
             try {
@@ -194,13 +317,13 @@
 
                 accesses.push(novoAcesso);
                 saveData();
-                document.getElementById('addForm').reset();                showToast('Acesso adicionado com sucesso!', 'success');
+                document.getElementById('addForm').reset();
+                showToast('Acesso adicionado com sucesso!', 'success');
             } catch (e) {
                 showToast("Ocorreu um erro inesperado ao salvar.", "error");
             }
         }
 
-        // 5. Remover acesso
         function deleteAccess(id) {
             if (confirm('Tem certeza que deseja excluir este acesso?')) {
                 accesses = accesses.filter(a => a.id !== id);
@@ -209,14 +332,12 @@
             }
         }
 
-        // 6. FUNÇÃO DE CÓPIA CORRIGIDA E ROBUSTA
         function copyToClipboard(text, fieldName) {
             if (!text) {
                 showToast(`${fieldName} está vazio.`, 'error');
                 return;
             }
             
-            // Tenta usar a API moderna primeiro
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(text).then(() => {
                     showToast(`${fieldName} copiado com sucesso!`, 'success');
@@ -224,7 +345,6 @@
                     fallbackCopy(text, fieldName);
                 });
             } else {
-                // Fallback para navegadores mais antigos ou HTTP
                 fallbackCopy(text, fieldName);
             }
         }
@@ -243,14 +363,14 @@
                 if (successful) {
                     showToast(`${fieldName} copiado com sucesso!`, 'success');
                 } else {
-                    showToast('Erro ao copiar. Selecione o texto manualmente.', 'error');                }
+                    showToast('Erro ao copiar. Selecione o texto manualmente.', 'error');
+                }
             } catch (err) {
                 showToast('Erro ao copiar. Selecione o texto manualmente.', 'error');
             }
             document.body.removeChild(textArea);
         }
 
-        // 7. Renderizar a tabela
         function renderAccesses() {
             const tbody = document.getElementById('accessTableBody');
             const emptyState = document.getElementById('emptyState');
@@ -274,7 +394,6 @@
                 const senhaDisplay = hidePasswords ? '••••••••' : (access.senha || '---');
                 const senhaClass = hidePasswords ? 'text-slate-400 tracking-widest' : 'font-mono text-slate-700';
 
-                // Nota: Usamos data-text em vez de onclick inline para evitar bugs com aspas no texto
                 tr.innerHTML = `
                     <td class="px-4 py-3 font-medium text-slate-800 max-w-[150px] truncate" title="${escapeHtml(access.nome)}">${escapeHtml(access.nome)}</td>
                     <td class="px-4 py-3">
@@ -292,7 +411,8 @@
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-2">
-                            <span class="${senhaClass} truncate flex-1" title="${escapeHtml(access.senha)}">${escapeHtml(senhaDisplay)}</span>                            <button class="copy-btn text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-1.5 rounded transition flex-shrink-0" data-text="${access.senha}" data-field="Senha" title="Copiar Senha">
+                            <span class="${senhaClass} truncate flex-1" title="${escapeHtml(access.senha)}">${escapeHtml(senhaDisplay)}</span>
+                            <button class="copy-btn text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-1.5 rounded transition flex-shrink-0" data-text="${access.senha}" data-field="Senha" title="Copiar Senha">
                                 <i class="fas fa-copy"></i>
                             </button>
                         </div>
@@ -307,7 +427,6 @@
                 tbody.appendChild(tr);
             });
 
-            // Adiciona os eventos de clique aos botões de cópia recém-criados
             document.querySelectorAll('.copy-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const text = this.getAttribute('data-text');
@@ -317,7 +436,6 @@
             });
         }
 
-        // 8. Exportar para Excel
         function exportExcel() {
             if (accesses.length === 0) {
                 showToast('Nenhum dado para exportar.', 'error');
@@ -340,8 +458,8 @@
             showToast('Planilha exportada com sucesso!', 'success');
         }
 
-        // 9. Importar do Excel
-        function importExcel(input) {            const file = input.files[0];
+        function importExcel(input) {
+            const file = input.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -381,7 +499,6 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // 10. Gerar e baixar planilha de exemplo
         function downloadExample() {
             const exemplo = [
                 { "Nome": "Servidor Financeiro", "Software": "AnyDesk", "ID_Acesso": "123 456 789", "Senha": "SenhaForte123!", "Observacao": "Acessar apenas com autorização prévia" },
@@ -390,13 +507,13 @@
             ];
             const ws = XLSX.utils.json_to_sheet(exemplo);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Exemplo");            const colWidths = [{wch: 25}, {wch: 15}, {wch: 20}, {wch: 20}, {wch: 40}];
+            XLSX.utils.book_append_sheet(wb, ws, "Exemplo");
+            const colWidths = [{wch: 25}, {wch: 15}, {wch: 20}, {wch: 20}, {wch: 40}];
             ws['!cols'] = colWidths;
             XLSX.writeFile(wb, "modelo_exemplo_acessos.xlsx");
             showToast('Planilha de exemplo baixada!', 'success');
         }
 
-        // Utilitário: Mostrar notificação
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
             const msgEl = document.getElementById('toast-message');
@@ -408,19 +525,11 @@
             }, 2500);
         }
 
-        // Utilitário: Prevenir XSS
         function escapeHtml(text) {
             if (!text) return '';
-            const map = { '&': '&', '<': '<', '>': '>', '"': '"', "'": '&#039;' };
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
             return text.replace(/[&<>"']/g, function(m) { return map[m]; });
         }
-
-        // Inicialização
-        document.addEventListener('DOMContentLoaded', () => {
-            checkStorageAvailability();
-            loadData();
-            renderAccesses();
-        });
     </script>
 </body>
 </html>
