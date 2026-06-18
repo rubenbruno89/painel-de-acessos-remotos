@@ -92,20 +92,6 @@ Para que a importação funcione corretamente, sua planilha deve conter as segui
 - **Faça backup regularmente** exportando para Excel, pois limpar os dados do navegador apagará tudo.
 - Para senhas de alta criticidade, utilize gerenciadores profissionais como **Bitwarden**, **1Password** ou **KeePass**.
 
----
-
-## 🖼️ Capturas de Tela
-
-<div align="center">  <img src="docs/screenshot-desktop.png" alt="Versão Desktop" width="800"/>
-  <p><em>Interface no desktop com todos os dados visíveis</em></p>
-</div>
-
-<div align="center">
-  <img src="docs/screenshot-mobile.png" alt="Versão Mobile" width="300"/>
-  <p><em>Interface responsiva no celular</em></p>
-</div>
-
-> 📸 *Adicione imagens reais nas pastas `docs/` para exibir as capturas de tela.*
 
 ---
 
